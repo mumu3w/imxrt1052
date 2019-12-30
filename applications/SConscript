@@ -1,0 +1,21 @@
+import rtconfig
+from building import *
+
+cwd     = GetCurrentDir()
+CPPPATH = [cwd, str(Dir('#'))]
+src     = Split("""
+main.c
+""")
+
+if GetDepend(['RT_USING_DFS']):
+    src += ['mnt.c']
+
+# add for startup script 
+if rtconfig.CROSS_TOOL == 'gcc':
+    CPPDEFINES = ['__START=entry']
+else:
+    CPPDEFINES = []
+    
+group = DefineGroup('Applications', src, depend = [''], CPPPATH = CPPPATH, CPPDEFINES=CPPDEFINES)
+
+Return('group')
