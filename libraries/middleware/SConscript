@@ -1,0 +1,17 @@
+from building import *
+
+cwd = GetCurrentDir()
+
+src = []
+
+src += ['usb/phy/usb_phy.c']
+
+src += ['usb/osa/usb_osa_bm.c']
+
+path = [cwd + '/usb/include']
+path += [cwd + '/usb/osa/']
+path += [cwd + '/usb/phy/']
+
+group = DefineGroup('usb', src, depend = [''], CPPPATH = path)
+
+Return('group')
