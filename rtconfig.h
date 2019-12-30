@@ -147,12 +147,6 @@
 /* samples: kernel and components samples */
 
 
-/* Privated Packages of RealThread */
-
-
-/* Network Utilities */
-
-
 /* Hardware Drivers Config */
 
 #define SOC_IMXRT1052CVL5B
@@ -165,5 +159,7 @@
 
 /* Onboard Peripheral Drivers */
 
+#define BSP_USING_USB
+#define BSP_USING_USBH
 
 #endif

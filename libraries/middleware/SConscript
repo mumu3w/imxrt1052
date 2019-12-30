@@ -1,17 +1,32 @@
 from building import *
+Import('rtconfig')
 
 cwd = GetCurrentDir()
 
 src = []
+CPPDEFINES = []
 
-src += ['usb/phy/usb_phy.c']
+if GetDepend(['BSP_USING_USBH']):
+    src += ['usb/host/usb_host_devices.c']
+    src += ['usb/host/usb_host_ehci.c']
+    src += ['usb/host/usb_host_framework.c']
+    src += ['usb/host/usb_host_hci.c']
 
-src += ['usb/osa/usb_osa_bm.c']
+if GetDepend('BSP_USING_USB'):
+    src += Glob('usb/phy/*.c')
+    src += Glob('usb/osa/*.c')
+    CPPDEFINES += ['ENDIANNESS']
+    CPPDEFINES += ['USB_STACK_BM']
 
 path = [cwd + '/usb/include']
-path += [cwd + '/usb/osa/']
-path += [cwd + '/usb/phy/']
+path += [cwd + '/usb/device']
+path += [cwd + '/usb/host']
+path += [cwd + '/usb/host/class']
+path += [cwd + '/usb/device']
+path += [cwd + '/usb/osa']
+path += [cwd + '/usb/phy']
+path += [cwd + '/usb/templates/config']
 
-group = DefineGroup('usb', src, depend = [''], CPPPATH = path)
+group = DefineGroup('usb', src, depend = ['BSP_USING_USB'], CPPPATH = path, CPPDEFINES = CPPDEFINES)
 
 Return('group')

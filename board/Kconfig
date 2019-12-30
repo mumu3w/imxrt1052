@@ -123,6 +123,20 @@ menu "Onboard Peripheral Drivers"
     config BSP_USING_SDRAM
         bool "Enable SDRAM"
         default n
+
+    menuconfig BSP_USING_USB
+        bool "Using USB"
+        default n
+        if BSP_USING_USB
+            config BSP_USING_USBD
+                bool "Enable USB Device"
+                default n
+
+            config BSP_USING_USBH
+                bool "Enable USB Host"
+                default n
+       endif
+
 endmenu
 
 endmenu
