@@ -143,6 +143,8 @@ menu "USB Stack"
     
     config BSP_USING_USBH_MOUSE
         bool "Enable USB hid mouse"
+        select BSP_USING_USB
+        select BSP_USING_USBH
         default n
 endmenu
 

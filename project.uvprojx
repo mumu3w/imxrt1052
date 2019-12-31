@@ -488,11 +488,6 @@
               <FilePath>board\MCUX_Config\pin_mux.c</FilePath>
             </File>
             <File>
-              <FileName>drv_gpio.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>libraries\drivers\drv_gpio.c</FilePath>
-            </File>
-            <File>
               <FileName>drv_uart.c</FileName>
               <FileType>1</FileType>
               <FilePath>libraries\drivers\drv_uart.c</FilePath>
@@ -661,11 +656,6 @@
               <FileName>startup_MIMXRT1052.s</FileName>
               <FileType>2</FileType>
               <FilePath>libraries\MIMXRT1050\MIMXRT1052\arm\startup_MIMXRT1052.s</FilePath>
-            </File>
-            <File>
-              <FileName>fsl_gpio.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>libraries\MIMXRT1050\MIMXRT1052\drivers\fsl_gpio.c</FilePath>
             </File>
             <File>
               <FileName>fsl_lpuart.c</FileName>

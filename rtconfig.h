@@ -159,7 +159,6 @@
 
 /* On-chip Peripheral Drivers */
 
-#define BSP_USING_GPIO
 #define BSP_USING_LPUART
 #define BSP_USING_LPUART1
 
