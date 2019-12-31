@@ -77,8 +77,6 @@
 #define RT_PIPE_BUFSZ 512
 #define RT_USING_SERIAL
 #define RT_SERIAL_RB_BUFSZ 64
-#define RT_USING_CPUTIME
-#define RT_USING_PIN
 
 /* Using USB */
 
@@ -153,22 +151,13 @@
 /* Network Utilities */
 
 
-/* Hardware Drivers Config */
+/* USB Host Stack */
 
 #define SOC_IMXRT1052CVL5B
-
-/* On-chip Peripheral Drivers */
-
 #define BSP_USING_LPUART
 #define BSP_USING_LPUART1
-
-/* Onboard Peripheral Drivers */
-
 #define BSP_USING_USB
 #define BSP_USING_USBH
-
-/* USB Stack */
-
 #define BSP_USING_USBH_MOUSE
 
 #endif
