@@ -32,3 +32,15 @@ config SOC_IMXRT1052CVL5B
         default n
 
 endmenu
+
+menu "USB Device Stack"
+    config BSP_USING_USBD
+    bool
+    default n
+
+    config BSP_USING_USBD_VCOM
+        bool "Enable USB cdc vcom"
+        select BSP_USING_USBD
+        default n
+
+endmenu
