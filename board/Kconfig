@@ -139,4 +139,12 @@ menu "Onboard Peripheral Drivers"
 
 endmenu
 
+menu "USB Stack"
+    
+    config BSP_USING_USBH_MOUSE
+        bool "Enable USB hid mouse"
+        default n
+endmenu
+
+
 endmenu

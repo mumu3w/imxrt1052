@@ -265,14 +265,14 @@ RT_WEAK void _sys_exit(int return_code)
  */
 long _sys_flen(FILEHANDLE fh)
 {
-    struct stat stat;
-    
     if (fh < STDERR)
         return -1;
 
 #ifndef RT_USING_DFS
     return -1;
 #else
+    struct stat stat;
+
     fstat(fh, &stat);
     return stat.st_size;
 #endif

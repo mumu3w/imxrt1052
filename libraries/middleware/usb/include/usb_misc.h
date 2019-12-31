@@ -23,8 +23,7 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif /* __cplusplus */
-
-extern int DbgConsole_Printf(const char *fmt_s, ...);
+#include<rtthread.h>
 
 #if defined(__cplusplus)
 }
@@ -33,7 +32,7 @@ extern int DbgConsole_Printf(const char *fmt_s, ...);
 #if defined(SDK_DEBUGCONSOLE) && (SDK_DEBUGCONSOLE < 1)
 #define usb_echo printf
 #else
-#define usb_echo DbgConsole_Printf
+#define usb_echo rt_kprintf
 #endif
 
 #if defined(__ICCARM__)
