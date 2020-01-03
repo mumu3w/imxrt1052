@@ -76,16 +76,16 @@ void USB_OTG1_IRQHandler(void)
     USB_HostEhciIsrFunction(g_HostHandle);
 }
 
-
-void USB_OTG2_IRQHandler(void)
+void USB_HostTaskFn(void *param)
 {
-    USB_HostEhciIsrFunction(g_HostHandle);
+    USB_HostEhciTaskFunction(param);
 }
 
 void USB_HostClockInit(void)
 {
 
-    usb_phy_config_struct_t phyConfig = {
+    usb_phy_config_struct_t phyConfig = 
+    {
         BOARD_USB_PHY_D_CAL, BOARD_USB_PHY_TXCAL45DP, BOARD_USB_PHY_TXCAL45DM,
     };
 
@@ -121,11 +121,6 @@ void USB_HostIsrEnable(void)
     EnableIRQ((IRQn_Type)irqNumber);
 }
 
-void USB_HostTaskFn(void *param)
-{
-    USB_HostEhciTaskFunction(param);
-}
-
 /*!
  * @brief USB isr function.
  */
@@ -135,22 +130,25 @@ static usb_status_t USB_HostEvent(usb_device_handle deviceHandle,
                                   uint32_t eventCode)
 {
     usb_status_t status = kStatus_USB_Success;
-
+    usb_echo("callback function\r\n");
     switch (eventCode)
     {
         case kUSB_HostEventAttach:
+            usb_echo("callback attach event\r\n");
             status = USB_HostHidMouseEvent(deviceHandle, configurationHandle, eventCode);
             break;
 
         case kUSB_HostEventNotSupported:
-            usb_echo("device not supported.\r\n");
+            usb_echo("callback device not supported.\r\n");
             break;
 
         case kUSB_HostEventEnumerationDone:
+            usb_echo("callback enumeration done\r\n");
             status = USB_HostHidMouseEvent(deviceHandle, configurationHandle, eventCode);
             break;
 
         case kUSB_HostEventDetach:
+            usb_echo("callback detach event\r\n");
             status = USB_HostHidMouseEvent(deviceHandle, configurationHandle, eventCode);
             break;
 
@@ -184,7 +182,7 @@ static void USB_HostApplicationInit(void)
              ((uint8_t)(usbHostVersion >> 8)), ((uint8_t)(usbHostVersion)));
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
     USB_HostApplicationInit();
 

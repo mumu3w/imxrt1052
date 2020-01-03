@@ -3756,6 +3756,7 @@ static void USB_HostEhciPortChange(usb_host_ehci_instance_t *ehciInstance)
 
     if (portScRegister & USBHS_PORTSC1_CSC_MASK) /* connection status change */
     {
+        usb_echo("connection status change\r\n");
         sofStart = (int32_t)(ehciInstance->ehciIpBase->FRINDEX & EHCI_MAX_UFRAME_VALUE);
 
         /* process CSC bit */
@@ -3782,15 +3783,13 @@ static void USB_HostEhciPortChange(usb_host_ehci_instance_t *ehciInstance)
     portScRegister = ehciInstance->ehciIpBase->PORTSC1;
     if (portScRegister & USBHS_PORTSC1_CCS_MASK) /* process attach */
     {
+        usb_echo("process attach\r\n");
         if ((ehciInstance->deviceAttached == kEHCIDevicePhyAttached) ||
             (ehciInstance->deviceAttached == kEHCIDeviceAttached))
         {
+            usb_echo("device phy attached or device attached\r\n");
             return;
         }
-#if ((defined(USB_HOST_CONFIG_LOW_POWER_MODE)) && (USB_HOST_CONFIG_LOW_POWER_MODE > 0U))
-        ehciInstance->busSuspendStatus = kBus_EhciIdle;
-        ehciInstance->ehciIpBase->USBINTR &= ~(USBHS_USBINTR_TIE1_MASK);
-#endif
         for (index = 0; index < USB_HOST_EHCI_PORT_CONNECT_DEBOUNCE_DELAY; ++index)
         {
             USB_HostEhciDelay(ehciInstance->ehciIpBase, 1);
@@ -3804,6 +3803,7 @@ static void USB_HostEhciPortChange(usb_host_ehci_instance_t *ehciInstance)
             ehciInstance->deviceAttached = kEHCIDeviceDetached;
             return;
         }
+        usb_echo("hardware level reset the port %s\r\n", __FUNCTION__);
         /* reset port */
         portScRegister = ehciInstance->ehciIpBase->PORTSC1;
         portScRegister &= (~EHCI_PORTSC1_W1_BITS);
@@ -4598,6 +4598,7 @@ void USB_HostEhciTaskFunction(void *hostHandle)
     {
         if (bitSet & EHCI_TASK_EVENT_PORT_CHANGE) /* port change */
         {
+            usb_echo("wait port change\r\n");
             USB_HostEhciPortChange(ehciInstance);
         }
 
@@ -4606,22 +4607,17 @@ void USB_HostEhciTaskFunction(void *hostHandle)
             USB_HostEhciTimer0(ehciInstance);
         }
 
-#if ((defined(USB_HOST_CONFIG_LOW_POWER_MODE)) && (USB_HOST_CONFIG_LOW_POWER_MODE > 0U))
-        if (bitSet & EHCI_TASK_EVENT_TIMER1) /* timer1 */
-        {
-            USB_HostEhciTimer1(ehciInstance);
-        }
-#endif
-
         if (ehciInstance->deviceAttached == kEHCIDeviceAttached)
         {
             if (bitSet & EHCI_TASK_EVENT_TRANSACTION_DONE) /* transaction done */
             {
+//                usb_echo("wait transaction done\r\n");
                 USB_HostEhciTransactionDone(ehciInstance);
             }
 
             if (bitSet & EHCI_TASK_EVENT_DEVICE_DETACH) /* device detach */
             {
+                usb_echo("wait device detach\r\n");
                 ehciInstance->ehciIpBase->USBINTR &=
                     (~USBHS_USBINTR_PCE_MASK); /* disable attach, enable when the detach process is done */
                 ehciInstance->deviceAttached = kEHCIDeviceDetached;
@@ -4632,6 +4628,7 @@ void USB_HostEhciTaskFunction(void *hostHandle)
         {
             if (bitSet & EHCI_TASK_EVENT_DEVICE_ATTACH) /* device is attached */
             {
+                usb_echo("wait device is attached\r\n");
                 USB_HostEhciStartAsync(ehciInstance);
                 USB_HostEhciStartPeriodic(ehciInstance);
 
@@ -4660,73 +4657,6 @@ void USB_HostEhciIsrFunction(void *hostHandle)
 
     ehciInstance = (usb_host_ehci_instance_t *)((usb_host_instance_t *)hostHandle)->controllerHandle;
 
-#if ((defined(USB_HOST_CONFIG_LOW_POWER_MODE)) && (USB_HOST_CONFIG_LOW_POWER_MODE > 0U))
-
-#if (defined(FSL_FEATURE_SOC_USBNC_COUNT) && (FSL_FEATURE_SOC_USBNC_COUNT > 0U))
-    if (ehciInstance->registerNcBase->USB_OTGn_CTRL & USBNC_USB_OTGn_CTRL_WIE_MASK)
-    {
-        usb_host_instance_t *hostPointer = (usb_host_instance_t *)ehciInstance->hostHandle;
-        ehciInstance->registerNcBase->USB_OTGn_CTRL &= ~USBNC_USB_OTGn_CTRL_WIE_MASK;
-        hostPointer->deviceCallback(hostPointer->suspendedDevice, NULL,
-                                    kUSB_HostEventDetectResume); /* call host callback function */
-
-        while (!(ehciInstance->registerNcBase->USB_OTGn_PHY_CTRL_0 & USBNC_USB_OTGn_PHY_CTRL_0_UTMI_CLK_VLD_MASK))
-        {
-        }
-
-        if (ehciInstance->ehciIpBase->PORTSC1 & USBHS_PORTSC1_CCS_MASK)
-        {
-            USB_HostEhciStartAsync(ehciInstance);
-            USB_HostEhciStartPeriodic(ehciInstance);
-        }
-        ehciInstance->ehciIpBase->USBCMD |= (USBHS_USBCMD_RS_MASK);
-        if ((kBus_EhciSuspended == ehciInstance->busSuspendStatus))
-        {
-            /* ehciInstance->ehciIpBase->PORTSC1 |= USBHS_PORTSC1_FPR_MASK; */
-            ehciInstance->busSuspendStatus = kBus_EhciStartResume;
-        }
-        else
-        {
-        }
-    }
-    else
-    {
-    }
-#else
-    if (ehciInstance->ehciIpBase->USBGENCTRL & USBHS_USBGENCTRL_WU_IE_MASK)
-    {
-        usb_host_instance_t *hostPointer = (usb_host_instance_t *)ehciInstance->hostHandle;
-
-        hostPointer->deviceCallback(hostPointer->suspendedDevice, NULL,
-                                    kUSB_HostEventDetectResume); /* call host callback function */
-
-        while (!(USBPHY->PLL_SIC & USBPHY_PLL_SIC_PLL_LOCK_MASK))
-        {
-        }
-        ehciInstance->ehciIpBase->USBGENCTRL |= USBHS_USBGENCTRL_WU_INT_CLR_MASK;
-        ehciInstance->ehciIpBase->USBGENCTRL &= ~USBHS_USBGENCTRL_WU_IE_MASK;
-        if (ehciInstance->ehciIpBase->PORTSC1 & USBHS_PORTSC1_CCS_MASK)
-        {
-            USB_HostEhciStartAsync(ehciInstance);
-            USB_HostEhciStartPeriodic(ehciInstance);
-        }
-        ehciInstance->ehciIpBase->USBCMD |= (USBHS_USBCMD_RS_MASK);
-        if ((kBus_EhciSuspended == ehciInstance->busSuspendStatus))
-        {
-            ehciInstance->busSuspendStatus = kBus_EhciStartResume;
-            /*ehciInstance->ehciIpBase->PORTSC1 |= USBHS_PORTSC1_FPR_MASK; */
-        }
-        else
-        {
-        }
-    }
-    else
-    {
-    }
-#endif /* FSL_FEATURE_SOC_USBNC_COUNT */
-
-#endif /* USB_HOST_CONFIG_LOW_POWER_MODE */
-
     interruptStatus = ehciInstance->ehciIpBase->USBSTS;
     interruptStatus &= ehciInstance->ehciIpBase->USBINTR;
     while (interruptStatus) /* there are usb interrupts */
@@ -4749,28 +4679,7 @@ void USB_HostEhciIsrFunction(void *hostHandle)
 
         if (interruptStatus & USBHS_USBSTS_PCI_MASK) /* port change detect interrupt */
         {
-#if ((defined(USB_HOST_CONFIG_LOW_POWER_MODE)) && (USB_HOST_CONFIG_LOW_POWER_MODE > 0U))
-            usb_host_instance_t *hostPointer = (usb_host_instance_t *)ehciInstance->hostHandle;
-            if (ehciInstance->ehciIpBase->PORTSC1 & USBHS_PORTSC1_FPR_MASK)
-            {
-                if (kBus_EhciStartSuspend == ehciInstance->busSuspendStatus)
-                {
-                    if (ehciInstance->ehciIpBase->PORTSC1 & USBHS_PORTSC1_CCS_MASK)
-                    {
-                        USB_HostEhciStartAsync(ehciInstance);
-                        USB_HostEhciStartPeriodic(ehciInstance);
-                    }
-                    hostPointer->deviceCallback(hostPointer->suspendedDevice, NULL,
-                                                kUSB_HostEventNotSuspended); /* call host callback function */
-                    hostPointer->suspendedDevice = NULL;
-                    ehciInstance->busSuspendStatus = kBus_EhciIdle;
-                    ehciInstance->ehciIpBase->USBINTR &= ~(USBHS_USBINTR_TIE1_MASK);
-                }
-                else
-                {
-                }
-            }
-#endif
+            usb_echo("port change detect interrupt\r\n");
             USB_OsaEventSet(ehciInstance->taskEventHandle, EHCI_TASK_EVENT_PORT_CHANGE);
         }
 
@@ -4778,13 +4687,6 @@ void USB_HostEhciIsrFunction(void *hostHandle)
         {
             USB_OsaEventSet(ehciInstance->taskEventHandle, EHCI_TASK_EVENT_TIMER0);
         }
-
-#if ((defined(USB_HOST_CONFIG_LOW_POWER_MODE)) && (USB_HOST_CONFIG_LOW_POWER_MODE > 0U))
-        if (interruptStatus & USBHS_USBSTS_TI1_MASK) /* timer 1 interrupt */
-        {
-            USB_OsaEventSet(ehciInstance->taskEventHandle, EHCI_TASK_EVENT_TIMER1);
-        }
-#endif
 
         interruptStatus = ehciInstance->ehciIpBase->USBSTS;
         interruptStatus &= ehciInstance->ehciIpBase->USBINTR;

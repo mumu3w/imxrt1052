@@ -253,6 +253,10 @@ void USB_HostHidMouseTask(void *param)
             {
                 usb_echo("set interface error\r\n");
             }
+            else
+            {
+                usb_echo("set hid interface success\r\n");
+            }
             break;
 
         case kUSB_HostHidRunSetInterfaceDone: /* 2. hid set idle */
@@ -267,10 +271,15 @@ void USB_HostHidMouseTask(void *param)
             {
                 usb_echo("Error in USB_HostHidSetIdle\r\n");
             }
+            else
+            {
+                usb_echo("hid set idle success\r\n");
+            }
             break;
 
         case kUSB_HostHidRunSetIdleDone: /* 3. hid get report descriptor */
             /* get report descriptor's length */
+            usb_echo("hid get report descriptor\r\n");
             hidDescriptor = NULL;
             descriptor = (uint8_t *)((usb_host_interface_t *)mouseInstance->interfaceHandle)->interfaceExtension;
             endPosition = (uint32_t)descriptor +
@@ -322,6 +331,7 @@ void USB_HostHidMouseTask(void *param)
             }
 
         case kUSB_HostHidRunGetReportDescriptorDone: /* 4. hid set protocol */
+            usb_echo("hid set protocol\r\n");
             mouseInstance->runWaitState = kUSB_HostHidRunWaitSetProtocol;
             mouseInstance->runState = kUSB_HostHidRunIdle;
             /* third: set protocol */
@@ -333,6 +343,7 @@ void USB_HostHidMouseTask(void *param)
             break;
 
         case kUSB_HostHidRunSetProtocolDone: /* 5. start to receive data */
+            usb_echo("start to receive data\r\n");
             mouseInstance->runWaitState = kUSB_HostHidRunWaitDataReceived;
             mouseInstance->runState = kUSB_HostHidRunIdle;
             if (USB_HostHidRecv(mouseInstance->classHandle, mouseInstance->mouseBuffer, mouseInstance->maxPacketSize,
@@ -343,6 +354,7 @@ void USB_HostHidMouseTask(void *param)
             break;
 
         case kUSB_HostHidRunDataReceived: /* process received data and receive next data */
+            usb_echo("process received data and receive next data\r\n");
             USB_HostMouseProcessBuffer(mouseInstance->mouseBuffer);
 
             mouseInstance->runWaitState = kUSB_HostHidRunWaitDataReceived;
@@ -384,6 +396,7 @@ usb_status_t USB_HostHidMouseEvent(usb_device_handle deviceHandle,
     {
         case kUSB_HostEventAttach:
             /* judge whether is configurationHandle supported */
+            usb_echo("judge whether is configurationHandle supported\r\n");
             configuration = (usb_host_configuration_t *)configurationHandle;
             for (interfaceIndex = 0; interfaceIndex < configuration->interfaceCount; ++interfaceIndex)
             {

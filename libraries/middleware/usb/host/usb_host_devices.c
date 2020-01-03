@@ -296,9 +296,6 @@ static usb_status_t USB_HostProcessState(usb_host_device_instance_t *deviceInsta
     {
         if (USB_HostMallocTransfer(deviceInstance->hostHandle, &transfer) != kStatus_USB_Success)
         {
-#ifdef HOST_ECHO
-            usb_echo("error to get transfer\r\n");
-#endif
             return kStatus_USB_Error;
         }
         transfer->callbackFn = USB_HostEnumerationTransferCallback;
@@ -315,6 +312,7 @@ static usb_status_t USB_HostProcessState(usb_host_device_instance_t *deviceInsta
     {
         case kStatus_DEV_GetDes8:
         case kStatus_DEV_GetDes: /* get descriptor state */
+            usb_echo("process get descriptor state\r\n");
             getDescriptorParam.descriptorLength = sizeof(usb_descriptor_device_t);
             if (deviceInstance->state == kStatus_DEV_GetDes8)
             {
@@ -330,11 +328,13 @@ static usb_status_t USB_HostProcessState(usb_host_device_instance_t *deviceInsta
             status = USB_HostStandardSetGetDescriptor(deviceInstance, transfer, &getDescriptorParam);
             break;
         case kStatus_DEV_SetAddress: /* set address state */
+            usb_echo("process set address state\r\n");
             transfer->setupPacket->bRequest = USB_REQUEST_STANDARD_SET_ADDRESS;
             status = USB_HostStandardSetAddress(deviceInstance, transfer, &deviceInstance->allocatedAddress);
             break;
 
         case kStatus_DEV_GetCfg9: /* get 9 bytes configuration state */
+            usb_echo("process get 9 bytes configuration status\r\n");
             getDescriptorParam.descriptorBuffer = deviceInstance->enumBuffer;
             getDescriptorParam.descriptorType = USB_DESCRIPTOR_TYPE_CONFIGURE;
             getDescriptorParam.descriptorIndex = deviceInstance->configurationValue;
@@ -347,6 +347,7 @@ static usb_status_t USB_HostProcessState(usb_host_device_instance_t *deviceInsta
             break;
 
         case kStatus_DEV_GetCfg: /* get configuration state */
+            usb_echo("process get configuration state\r\n");
             getDescriptorParam.descriptorBuffer = deviceInstance->configurationDesc;
             getDescriptorParam.descriptorType = USB_DESCRIPTOR_TYPE_CONFIGURE;
             getDescriptorParam.descriptorIndex = deviceInstance->configurationValue;
@@ -359,6 +360,7 @@ static usb_status_t USB_HostProcessState(usb_host_device_instance_t *deviceInsta
             break;
 
         case kStatus_DEV_SetCfg: /* set configuration state */
+            usb_echo("process set configuration state\r\n");
             transfer->setupPacket->wValue =
                 USB_SHORT_TO_LITTLE_ENDIAN(deviceInstance->configuration.configurationDesc->bConfigurationValue);
             transfer->setupPacket->bRequest = USB_REQUEST_STANDARD_SET_CONFIGURATION;
@@ -366,6 +368,7 @@ static usb_status_t USB_HostProcessState(usb_host_device_instance_t *deviceInsta
             break;
 
         case kStatus_DEV_EnumDone: /* enumeration done state */
+            usb_echo("process enumeration done state\r\n");
             status = USB_HostNotifyDevice(deviceInstance,
                                           kUSB_HostEventEnumerationDone); /* notify device enumeration done */
             if (status == kStatus_USB_Success)
@@ -940,16 +943,13 @@ usb_status_t USB_HostAttachDevice(usb_host_handle hostHandle,
     }
 
 /* check whether is the device attached? */
-#if ((defined USB_HOST_CONFIG_HUB) && (USB_HOST_CONFIG_HUB))
+
     currentInstance = (usb_host_device_instance_t *)hostInstance->deviceList;
     while (currentInstance != NULL)
     {
         if ((currentInstance->hubNumber == hubNumber) && (currentInstance->portNumber == portNumber))
         {
             *deviceHandle = NULL;
-#ifdef HOST_ECHO
-            usb_echo("device has attached\r\n");
-#endif
             return kStatus_USB_Busy;
         }
         else
@@ -957,22 +957,11 @@ usb_status_t USB_HostAttachDevice(usb_host_handle hostHandle,
             currentInstance = currentInstance->next;
         }
     }
-#else
-    if (hostInstance->deviceList != NULL)
-    {
-        *deviceHandle = NULL;
-        usb_echo("device has attached\r\n");
-        return kStatus_USB_Busy;
-    }
-#endif
 
     /* Allocate new device instance */
     newInstance = (usb_host_device_instance_t *)USB_OsaMemoryAllocate(sizeof(usb_host_device_instance_t));
     if (newInstance == NULL)
     {
-#ifdef HOST_ECHO
-        usb_echo("allocate dev instance fail\r\n");
-#endif
         return kStatus_USB_AllocFail;
     }
 
@@ -983,23 +972,12 @@ usb_status_t USB_HostAttachDevice(usb_host_handle hostHandle,
     newInstance->enumRetries = USB_HOST_CONFIG_ENUMERATION_MAX_RETRIES;
     newInstance->setAddress = 0;
     newInstance->deviceAttachState = kStatus_device_Attached;
-#if ((defined(USB_HOST_CONFIG_BUFFER_PROPERTY_CACHEABLE)) && (USB_HOST_CONFIG_BUFFER_PROPERTY_CACHEABLE > 0U))
-    newInstance->deviceDescriptor =
-        (usb_descriptor_device_t *)SDK_Malloc(sizeof(usb_descriptor_device_t) + 9, USB_CACHE_LINESIZE);
-#else
+
     newInstance->deviceDescriptor =
         (usb_descriptor_device_t *)USB_OsaMemoryAllocate(sizeof(usb_descriptor_device_t) + 9);
-#endif
     if (newInstance->deviceDescriptor == NULL)
     {
-#ifdef HOST_ECHO
-        usb_echo("allocate newInstance->deviceDescriptor fail\r\n");
-#endif
-#if ((defined(USB_HOST_CONFIG_BUFFER_PROPERTY_CACHEABLE)) && (USB_HOST_CONFIG_BUFFER_PROPERTY_CACHEABLE > 0U))
-        SDK_Free(newInstance->deviceDescriptor);
-#else
         USB_OsaMemoryFree(newInstance->deviceDescriptor);
-#endif
         USB_OsaMemoryFree(newInstance);
         return kStatus_USB_AllocFail;
     }
@@ -1026,15 +1004,8 @@ usb_status_t USB_HostAttachDevice(usb_host_handle hostHandle,
     address = USB_HostAllocateDeviceAddress(hostInstance);
     if (address == 0)
     {
-#ifdef HOST_ECHO
-        usb_echo("allocate address fail\r\n");
-#endif
         USB_HostUnlock();
-#if ((defined(USB_HOST_CONFIG_BUFFER_PROPERTY_CACHEABLE)) && (USB_HOST_CONFIG_BUFFER_PROPERTY_CACHEABLE > 0U))
-        SDK_Free(newInstance->deviceDescriptor);
-#else
         USB_OsaMemoryFree(newInstance->deviceDescriptor);
-#endif
         USB_OsaMemoryFree(newInstance);
         return kStatus_USB_Error;
     }
@@ -1054,21 +1025,19 @@ usb_status_t USB_HostAttachDevice(usb_host_handle hostHandle,
     pipeInit.maxPacketSize = 8;
     pipeInit.numberPerUframe = 0;
     pipeInit.nakCount = USB_HOST_CONFIG_MAX_NAK;
+    usb_echo("host open pipe\r\n");
     if (USB_HostOpenPipe(hostHandle, &newInstance->controlPipe, &pipeInit) != kStatus_USB_Success)
     {
         /* don't need release resource, resource is released when detach */
         *deviceHandle = newInstance;
-#if ((defined(USB_HOST_CONFIG_BUFFER_PROPERTY_CACHEABLE)) && (USB_HOST_CONFIG_BUFFER_PROPERTY_CACHEABLE > 0U))
-        SDK_Free(newInstance->deviceDescriptor);
-#else
         USB_OsaMemoryFree(newInstance->deviceDescriptor);
-#endif
         USB_OsaMemoryFree(newInstance);
         return kStatus_USB_Error;
     }
 
     /* start enumeration */
     newInstance->state = kStatus_DEV_GetDes8;
+    usb_echo("start enumeration\r\n");
     USB_HostProcessState(newInstance); /* process enumeration state machine */
 
     *deviceHandle = newInstance;
